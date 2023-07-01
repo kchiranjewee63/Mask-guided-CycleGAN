@@ -3,6 +3,7 @@ from data.base_dataset import BaseDataset, get_transform
 from data.image_folder import make_dataset
 from PIL import Image
 import random
+import numpy as np
 
 
 class UnalignedDataset(BaseDataset):
@@ -58,7 +59,7 @@ class UnalignedDataset(BaseDataset):
         A_mask_path = A_path.replace("trainA", "maskA")
         A_img = Image.open(A_path).convert('RGB')
         B_img = Image.open(B_path).convert('RGB')
-        A_mask_image = Image.open(A_mask_path).convert('RGB')
+        A_mask_image = (np.array(Image.open(A_mask_path)) > 0).astype(np.int64)
         # apply image transformation
         A = self.transform_A(A_img)
         B = self.transform_B(B_img)
