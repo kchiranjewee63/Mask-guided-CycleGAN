@@ -78,8 +78,11 @@ def get_params(opt, size):
     return {'crop_pos': (x, y), 'flip': flip}
 
 
-def get_transform(opt, params=None, grayscale=False, method=transforms.InterpolationMode.BICUBIC, convert=True):
+def get_transform(opt, params=None, grayscale=False, method=transforms.InterpolationMode.BICUBIC, convert=True, mask=False):
     transform_list = []
+    if mask:
+        transform_list += [transforms.ToTensor()]
+        return transforms.Compose(transform_list)
     if grayscale:
         transform_list.append(transforms.Grayscale(1))
     if 'resize' in opt.preprocess:
@@ -97,11 +100,13 @@ def get_transform(opt, params=None, grayscale=False, method=transforms.Interpola
     if opt.preprocess == 'none':
         transform_list.append(transforms.Lambda(lambda img: __make_power_2(img, base=4, method=method)))
 
-    if not opt.no_flip:
-        if params is None:
-            transform_list.append(transforms.RandomHorizontalFlip())
-        elif params['flip']:
-            transform_list.append(transforms.Lambda(lambda img: __flip(img, params['flip'])))
+
+    # TODO
+    # if not opt.no_flip:
+    #     if params is None:
+    #         transform_list.append(transforms.RandomHorizontalFlip())
+    #     elif params['flip']:
+    #         transform_list.append(transforms.Lambda(lambda img: __flip(img, params['flip'])))
 
     if convert:
         transform_list += [transforms.ToTensor()]
