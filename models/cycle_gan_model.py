@@ -3,6 +3,12 @@ import itertools
 from util.image_pool import ImagePool
 from .base_model import BaseModel
 from . import networks
+import random
+from torchvision import transforms
+from torchvision.transforms import functional as TF
+import torch
+import albumentations as A
+import numpy as np
 
 
 class CycleGANModel(BaseModel):
@@ -110,6 +116,30 @@ class CycleGANModel(BaseModel):
         self.real_B = input['B' if AtoB else 'A'].to(self.device)
         self.mask_A = input['A_mask'].to(self.device)
         self.image_paths = input['A_paths' if AtoB else 'B_paths']
+
+        if self.isTrain:
+            crop_size = random.randint(128, 256)
+
+            # Define the transformation
+            transform = A.Compose([
+                A.RandomCrop(width=crop_size, height=crop_size),
+                A.Resize(height=256, width=256)
+            ])
+
+            # Convert tensor to numpy array and change the order of the dimensions
+            real_A_np = self.real_A.cpu().numpy().squeeze(0).transpose((1, 2, 0))
+            mask_A_np = self.mask_A.cpu().numpy().squeeze(0).transpose((1, 2, 0))
+            real_B_np = self.real_B.cpu().numpy().squeeze(0).transpose((1, 2, 0))
+
+            # Apply same transform to real_A and mask_A
+            transformed = transform(image=real_A_np, mask=mask_A_np)
+            self.real_A = torch.from_numpy(transformed["image"].transpose((2, 0, 1))).unsqueeze(0).to(self.device)
+            self.mask_A = torch.from_numpy(transformed["mask"].transpose((2, 0, 1))).unsqueeze(0).to(self.device)
+
+            # Apply transform to real_B
+            transformed = transform(image=real_B_np)
+            self.real_B = torch.from_numpy(transformed["image"].transpose((2, 0, 1))).unsqueeze(0).to(self.device)
+
 
     def forward(self):
         """Run forward pass; called by both functions <optimize_parameters> and <test>."""
